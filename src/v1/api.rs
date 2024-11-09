@@ -43,6 +43,7 @@ use reqwest::{Client, Method, Response};
 use serde::Serialize;
 use serde_json::Value;
 
+use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
 use std::io::Read;
 use std::io::Write;
@@ -56,6 +57,7 @@ pub struct OpenAIClient {
     pub organization: Option<String>,
     pub proxy: Option<String>,
     pub timeout: Option<u64>,
+    pub additional_headers: Option<HashMap<String, String>>,
 }
 
 impl OpenAIClient {
@@ -71,6 +73,7 @@ impl OpenAIClient {
             organization: None,
             proxy: None,
             timeout: None,
+            additional_headers: None,
         }
     }
 
@@ -82,6 +85,7 @@ impl OpenAIClient {
             organization: Some(organization),
             proxy: None,
             timeout: None,
+            additional_headers: None,
         }
     }
 
@@ -93,6 +97,7 @@ impl OpenAIClient {
             organization: None,
             proxy: Some(proxy),
             timeout: None,
+            additional_headers: None,
         }
     }
 
@@ -104,7 +109,12 @@ impl OpenAIClient {
             organization: None,
             proxy: None,
             timeout: Some(timeout),
+            additional_headers: None,
         }
+    }
+
+    pub fn set_additional_headers(&mut self, headers: HashMap<String, String>) {
+        self.additional_headers = Some(headers);
     }
 
     async fn build_request(&self, method: Method, path: &str) -> reqwest::RequestBuilder {
@@ -136,6 +146,12 @@ impl OpenAIClient {
 
         if Self::is_beta(path) {
             request = request.header("OpenAI-Beta", "assistants=v2");
+        }
+        
+        if let Some(additional_headers) = &self.additional_headers {
+            for (key, value) in additional_headers {
+                request = request.header(key, value);
+            }
         }
 
         request
